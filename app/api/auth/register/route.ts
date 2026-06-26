@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error || !data) {
+      console.error('SUPABASE INSERT ERROR:', error)
       return NextResponse.json({ error: 'Could not create account' }, { status: 500 })
     }
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions())
     return res
   } catch (err) {
+    console.error('REGISTER ERROR:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
