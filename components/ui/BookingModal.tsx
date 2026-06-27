@@ -11,9 +11,24 @@ import { Calendar } from '@/components/ui/Calendar'
 import { cn } from '@/lib/utils'
 
 const SPECIALISTS = [
-  { name: 'Muna Sherpa', title: 'Senior All-Round Beautician', rating: 5.0 },
-  { name: 'Sadaf Shaazadi', title: 'Hair Expert & Beauty Specialist', rating: 5.0 },
-  { name: 'Devi Gajnayake', title: 'Nail Artist & Nail Care Specialist', rating: 5.0 },
+  {
+    name: 'Muna Sherpa',
+    title: 'Senior All-Round Beautician',
+    rating: 5.0,
+    photo: '/specialists/muna.jpg',
+  },
+  {
+    name: 'Sadaf Shaazadi',
+    title: 'Hair Expert & Beauty Specialist',
+    rating: 5.0,
+    photo: '/specialists/sadaf.jpg',
+  },
+  {
+    name: 'Devi Gajnayake',
+    title: 'Nail Artist & Nail Care Specialist',
+    rating: 5.0,
+    photo: '/specialists/devi.jpg',
+  },
 ]
 
 const TIME_SLOTS = {
@@ -64,8 +79,8 @@ export default function BookingModal() {
     openAuth,
     setPendingBooking,
     preSelectedService,
-    selectedItem,
-    setSelectedItem,
+    selectedItems,
+    setSelectedItems,
   } = useBookingStore()
   const { customer } = useCustomer()
   const [step, setStep] = useState(1)
@@ -137,7 +152,7 @@ export default function BookingModal() {
     '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00',
   ]
 
-  const basePrice = selectedItem?.price ?? 0
+  const basePrice = selectedItems.reduce((sum, i) => sum + i.price, 0)
   const addOnsSubtotal = ADD_ONS.filter((a) => addOns.includes(a.id)).reduce(
     (sum, a) => sum + a.price,
     0
@@ -152,13 +167,16 @@ export default function BookingModal() {
     setSubmitting(true)
     setError(null)
     try {
-      const finalPrice = selectedItem ? finalTotal : null
+      const finalPrice = selectedItems.length > 0 ? finalTotal : null
+      const serviceLabel = selectedItems.length > 0
+        ? selectedItems.map((i) => i.name).join(', ')
+        : service.label
       const res = await fetch('/api/bookings/create', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          service: selectedItem?.name ?? service.label,
+          service: serviceLabel,
           date: format(date, 'yyyy-MM-dd'),
           time,
           specialist,
@@ -301,6 +319,7 @@ export default function BookingModal() {
                         )}
                         <div className="space-y-2">
                           {service.items.map((item) => {
+                            const isSelected = selectedItems.some((i) => i.name === item.name)
                             const discountedPrice = customer?.membership
                               ? Math.round(
                                   item.price * (1 - customer.membership.discountPercent / 100)
@@ -310,12 +329,20 @@ export default function BookingModal() {
                               <button
                                 key={item.name}
                                 onClick={() => {
-                                  setSelectedItem(item)
-                                  setStep(2)
+                                  setSelectedItems(
+                                    isSelected
+                                      ? selectedItems.filter((i) => i.name !== item.name)
+                                      : [...selectedItems, item]
+                                  )
                                 }}
-                                className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blush/50 text-left transition-colors gap-3"
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-colors gap-3 ${
+                                  isSelected
+                                    ? 'border-rose bg-dusty'
+                                    : 'border-gray-100 hover:border-blush/50'
+                                }`}
                               >
-                                <span className="text-sm font-medium text-charcoal">
+                                <span className="text-sm font-medium text-charcoal flex items-center gap-2">
+                                  {isSelected && <span className="text-rose">✓</span>}
                                   {item.name}
                                 </span>
                                 <div className="text-right shrink-0">
@@ -337,6 +364,19 @@ export default function BookingModal() {
                               </button>
                             )
                           })}
+                        </div>
+                        <div className="mt-6 flex justify-between items-center">
+                          <p className="text-sm text-gray-500">
+                            {selectedItems.length} service{selectedItems.length !== 1 ? 's' : ''} selected
+                          </p>
+                          <button
+                            onClick={() => setStep(2)}
+                            disabled={selectedItems.length === 0}
+                            className="rounded-full px-8 py-3 font-semibold text-white text-sm uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-opacity"
+                            style={{ backgroundColor: '#A85070' }}
+                          >
+                            Continue →
+                          </button>
                         </div>
                       </div>
                     ) : (
@@ -370,10 +410,13 @@ export default function BookingModal() {
                   {step === 3 && (
                     <div className="pb-4">
                       <h2 className="text-2xl font-black text-charcoal mb-1">Pick a date & time</h2>
-                      <p className="text-sm text-gray-500 mb-3">All times Sharjah local.</p>
-                      {(selectedItem || service) && (
+                      <p className="text-sm text-gray-500 mb-3">All times UAE standard time (GST+4).</p>
+                      {(selectedItems.length > 0 || service) && (
                         <div className="bg-dusty text-rose text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full inline-flex items-center gap-2 mb-5">
-                          <Check size={12} /> {selectedItem?.name ?? service?.label}
+                          <Check size={12} />{' '}
+                          {selectedItems.length > 0
+                            ? selectedItems.map((i) => i.name).join(', ')
+                            : service?.label}
                         </div>
                       )}
 
@@ -386,7 +429,8 @@ export default function BookingModal() {
                               onSelect={setDate}
                               defaultMonth={date ?? new Date()}
                               disabled={(d) =>
-                                isBefore(d, startOfDay(new Date())) && !isToday(d)
+                                (isBefore(d, startOfDay(new Date())) && !isToday(d)) ||
+                                d.getDay() === 1
                               }
                             />
                           </div>
@@ -457,11 +501,23 @@ export default function BookingModal() {
                                 : 'border-gray-100 hover:border-blush'
                             }`}
                           >
-                            <div className="w-12 h-12 rounded-full bg-rose text-white flex items-center justify-center font-bold">
-                              {sp.name
-                                .split(' ')
-                                .map((s) => s[0])
-                                .join('')}
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-rose text-white flex items-center justify-center font-bold flex-shrink-0 relative">
+                              {sp.photo && (
+                                <img
+                                  src={sp.photo}
+                                  alt={sp.name}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              )}
+                              <span className="text-sm">
+                                {sp.name
+                                  .split(' ')
+                                  .map((s) => s[0])
+                                  .join('')}
+                              </span>
                             </div>
                             <div className="flex-1">
                               <p className="font-bold text-charcoal">{sp.name}</p>
@@ -493,10 +549,14 @@ export default function BookingModal() {
                       </div>
 
                       <div className="bg-off-white rounded-2xl p-5 mb-5 space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Service</span>
-                          <span className="font-semibold">
-                            {selectedItem?.name ?? service?.label}
+                        <div className="flex justify-between gap-3">
+                          <span className="text-gray-500 shrink-0">
+                            {selectedItems.length > 1 ? 'Services' : 'Service'}
+                          </span>
+                          <span className="font-semibold text-right">
+                            {selectedItems.length > 0
+                              ? selectedItems.map((i) => i.name).join(', ')
+                              : service?.label}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -561,12 +621,14 @@ export default function BookingModal() {
                         })}
                       </div>
 
-                      {selectedItem && (
+                      {selectedItems.length > 0 && (
                         <div className="bg-[#FAF7F5] rounded-2xl p-5 mb-5 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">{selectedItem.name}</span>
-                            <span className="text-charcoal">{basePrice} AED</span>
-                          </div>
+                          {selectedItems.map((item) => (
+                            <div key={item.name} className="flex justify-between text-sm gap-3">
+                              <span className="text-gray-500">{item.name}</span>
+                              <span className="text-charcoal shrink-0">{item.price} AED</span>
+                            </div>
+                          ))}
                           {addOns.map((id) => {
                             const addon = ADD_ONS.find((a) => a.id === id)
                             return addon ? (
@@ -652,13 +714,17 @@ export default function BookingModal() {
                         Confirmation #{bookingId} sent to {customer.email}.
                       </p>
                       <div className="bg-off-white rounded-2xl p-5 mb-6 text-left space-y-2 text-sm max-w-sm mx-auto">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Service</span>
-                          <span className="font-semibold">
-                            {selectedItem?.name ?? service?.label}
+                        <div className="flex justify-between gap-3">
+                          <span className="text-gray-500 shrink-0">
+                            {selectedItems.length > 1 ? 'Services' : 'Service'}
+                          </span>
+                          <span className="font-semibold text-right">
+                            {selectedItems.length > 0
+                              ? selectedItems.map((i) => i.name).join(', ')
+                              : service?.label}
                           </span>
                         </div>
-                        {selectedItem && (
+                        {selectedItems.length > 0 && (
                           <>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Total</span>

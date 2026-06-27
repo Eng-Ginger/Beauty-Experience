@@ -88,39 +88,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mt-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div>
-          <p className="text-2xl md:text-3xl font-black">
-            Quiet drops, <span className="text-rose italic">never spam.</span>
-          </p>
-          <p className="text-white/40 text-xs mt-1 uppercase tracking-widest">
-            Circle Previews · Seasonal Events · The Occasional Surprise.
-          </p>
-        </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            ;(e.currentTarget.elements.namedItem('email') as HTMLInputElement).value = ''
-          }}
-          className="flex gap-2 w-full md:w-auto"
-        >
-          <input
-            type="email"
-            name="email"
-            required
-            placeholder="your@email.com"
-            className="bg-white/10 border border-white/20 rounded-full px-5 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/40 flex-1 md:w-64"
-          />
-          <button
-            type="submit"
-            className="bg-rose text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-rose/90 transition-colors"
-          >
-            Join
-          </button>
-        </form>
-      </div>
-
-      <div className="mt-8 border-t border-white/10 pt-6 text-center">
+      <div className="mt-8 pt-6 text-center">
         <p className="text-white/30 text-xs">© 2025 Beauty Experience. All Rights Reserved.</p>
       </div>
     </footer>

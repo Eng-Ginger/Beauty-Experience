@@ -210,7 +210,7 @@ export default function SmartMirrorModal() {
                           selected={selectedDate}
                           onSelect={setSelectedDate}
                           defaultMonth={selectedDate ?? new Date()}
-                          disabled={(d) => isBefore(d, startOfDay(new Date()))}
+                          disabled={(d) => isBefore(d, startOfDay(new Date())) || d.getDay() === 1}
                         />
                       </div>
                       <div
