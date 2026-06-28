@@ -1,12 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import { format, subYears } from 'date-fns'
 import { useBookingStore } from '@/lib/bookingStore'
 import { useCustomer } from '@/lib/useCustomer'
 import { useScrollLock } from '@/lib/useScrollLock'
-import { Calendar } from '@/components/ui/Calendar'
 
 type Tab = 'signin' | 'signup'
 
@@ -29,22 +27,8 @@ export default function AuthModal() {
 
   const [signin, setSignin] = useState({ email: '', password: '' })
   const [signup, setSignup] = useState({ name: '', email: '', password: '', phone: '+971', dob: '' })
-  const [dobDate, setDobDate] = useState<Date | undefined>(undefined)
-  const [showDobPicker, setShowDobPicker] = useState(false)
 
   useScrollLock(authOpen)
-
-  useEffect(() => {
-    if (!showDobPicker) return
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('[data-dob-picker]')) {
-        setShowDobPicker(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showDobPicker])
 
   const close = () => {
     closeAuth()
@@ -244,49 +228,16 @@ export default function AuthModal() {
                       required
                       className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose"
                     />
-                    <div className="relative" data-dob-picker>
+                    <div>
                       <label className="text-xs text-gray-400 uppercase tracking-widest ml-1">
                         Date of Birth
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowDobPicker((v) => !v)}
-                        className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose mt-1 text-left"
-                        style={{ color: dobDate ? '#1A1A1A' : '#9CA3AF' }}
-                      >
-                        {dobDate ? format(dobDate, 'dd MMMM yyyy') : 'Select date of birth'}
-                      </button>
-                      {showDobPicker && (
-                        <div
-                          className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl shadow-xl border overflow-hidden"
-                          style={{ borderColor: '#F0E8EA', maxWidth: '100%' }}
-                        >
-                          <div className="p-4">
-                            <Calendar
-                              mode="single"
-                              selected={dobDate}
-                              onSelect={(d) => {
-                                setDobDate(d)
-                                setSignup({ ...signup, dob: d ? format(d, 'yyyy-MM-dd') : '' })
-                                setShowDobPicker(false)
-                              }}
-                              defaultMonth={dobDate ?? subYears(new Date(), 25)}
-                              disabled={(d) =>
-                                d > subYears(new Date(), 10) ||
-                                d < subYears(new Date(), 100)
-                              }
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowDobPicker(false)}
-                            className="w-full text-xs text-center py-2 border-t"
-                            style={{ color: '#C4768A', borderColor: '#F0E8EA' }}
-                          >
-                            Close
-                          </button>
-                        </div>
-                      )}
+                      <input
+                        type="date"
+                        value={signup.dob}
+                        onChange={(e) => setSignup({ ...signup, dob: e.target.value })}
+                        className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose mt-1"
+                      />
                     </div>
                   </div>
                 )}
