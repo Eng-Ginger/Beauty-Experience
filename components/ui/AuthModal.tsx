@@ -259,7 +259,7 @@ export default function AuthModal() {
                       {showDobPicker && (
                         <div
                           className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl shadow-xl border overflow-hidden"
-                          style={{ borderColor: '#F0E8EA' }}
+                          style={{ borderColor: '#F0E8EA', maxWidth: '100%' }}
                         >
                           <div className="p-4">
                             <Calendar
@@ -275,7 +275,6 @@ export default function AuthModal() {
                                 d > subYears(new Date(), 10) ||
                                 d < subYears(new Date(), 100)
                               }
-                              captionLayout="dropdown"
                             />
                           </div>
                           <button
