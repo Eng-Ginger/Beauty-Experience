@@ -398,7 +398,7 @@ export default function Navbar() {
                 className="w-full rounded-full font-bold text-white text-base py-4 flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#A85070' }}
               >
-                <span>✦</span> BOOK NOW
+                BOOK NOW
               </button>
 
               {customer ? (
