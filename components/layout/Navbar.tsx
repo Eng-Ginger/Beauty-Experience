@@ -282,12 +282,12 @@ export default function Navbar() {
               className="flex items-center justify-between px-5 py-4 border-b"
               style={{ borderColor: '#F0E8EA' }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <img
                   src="/logo.png"
                   alt="BE"
                   style={{
-                    height: '36px',
+                    height: '44px',
                     width: 'auto',
                     objectFit: 'contain',
                     mixBlendMode: 'multiply',
@@ -321,74 +321,68 @@ export default function Navbar() {
               className="flex-1 px-5 py-6 space-y-2 overflow-y-auto"
               data-lenis-prevent
             >
-              {[
-                {
-                  id: 'home',
-                  label: 'Home',
-                  icon: <Home size={18} color="#C4768A" strokeWidth={1.5} />,
-                },
-                {
-                  id: 'innovations',
-                  label: 'Innovations',
-                  icon: <Lightbulb size={18} color="#C4768A" strokeWidth={1.5} />,
-                },
-                {
-                  id: 'services',
-                  label: 'Services',
-                  icon: <Sparkles size={18} color="#C4768A" strokeWidth={1.5} />,
-                },
-                {
-                  id: 'mirror',
-                  label: 'Mirror',
-                  icon: <ScanFace size={18} color="#C4768A" strokeWidth={1.5} />,
-                },
-                {
-                  id: 'loyalty',
-                  label: 'Loyalty',
-                  icon: <Gem size={18} color="#C4768A" strokeWidth={1.5} />,
-                },
-                {
-                  id: 'about',
-                  label: 'About',
-                  icon: <User size={18} color="#C4768A" strokeWidth={1.5} />,
-                },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setMenuOpen(false)
-                    handleNavClick(item.id)
-                  }}
-                  className="w-full flex items-center justify-between rounded-2xl px-4 py-4"
-                  style={{ backgroundColor: '#FFFFFF', border: '1px solid #FADADD' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex items-center justify-center rounded-full"
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        backgroundColor: '#FDF5F7',
-                      }}
-                    >
-                      {item.icon}
+              {(() => {
+                const items = [
+                  { id: 'home', label: 'Home', icon: <Home size={24} strokeWidth={1.5} /> },
+                  { id: 'innovations', label: 'Innovations', icon: <Lightbulb size={24} strokeWidth={1.5} /> },
+                  { id: 'services', label: 'Services', icon: <Sparkles size={24} strokeWidth={1.5} /> },
+                  { id: 'mirror', label: 'Mirror', icon: <ScanFace size={24} strokeWidth={1.5} /> },
+                  { id: 'loyalty', label: 'Loyalty', icon: <Gem size={24} strokeWidth={1.5} /> },
+                  { id: 'about', label: 'About', icon: <User size={24} strokeWidth={1.5} /> },
+                ]
+                return items.map((item, index) => {
+                  const isActive = active === item.id
+                  const prevIsActive = index > 0 && active === items[index - 1].id
+                  const showTopDivider = index > 0 && !isActive && !prevIsActive
+                  return (
+                    <div key={item.id}>
+                      {showTopDivider && (
+                        <div
+                          style={{
+                            height: '1px',
+                            backgroundColor: '#F0E8EA',
+                            marginLeft: '16px',
+                            marginRight: '16px',
+                          }}
+                        />
+                      )}
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false)
+                          handleNavClick(item.id)
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-5"
+                        style={{
+                          backgroundColor: isActive ? '#F5E6EA' : 'transparent',
+                          borderRadius: isActive ? '14px' : '0px',
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span style={{ color: isActive ? '#C4768A' : '#AAAAAA' }}>
+                            {item.icon}
+                          </span>
+                          <span
+                            className="font-semibold text-base"
+                            style={{ color: isActive ? '#C4768A' : '#1A1A1A' }}
+                          >
+                            {item.label}
+                          </span>
+                        </div>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke={isActive ? '#C4768A' : '#AAAAAA'}
+                          strokeWidth="2"
+                        >
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </button>
                     </div>
-                    <span className="font-semibold text-base" style={{ color: '#1A1A1A' }}>
-                      {item.label}
-                    </span>
-                  </div>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#C4768A"
-                    strokeWidth="2"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              ))}
+                  )
+                })
+              })()}
             </div>
 
             {/* Bottom section */}
