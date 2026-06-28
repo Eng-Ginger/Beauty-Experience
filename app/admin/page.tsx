@@ -4,10 +4,11 @@ import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import { format } from 'date-fns'
 
-type TabKey = 'bookings' | 'mirror_bookings' | 'customers' | 'loyalty_members'
+type TabKey = 'bookings' | 'calendar' | 'mirror_bookings' | 'customers' | 'loyalty_members'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'bookings', label: 'Bookings' },
+  { key: 'calendar', label: 'Calendar' },
   { key: 'mirror_bookings', label: 'Mirror Bookings' },
   { key: 'customers', label: 'Customers' },
   { key: 'loyalty_members', label: 'Loyalty Members' },
@@ -59,6 +60,11 @@ export default function AdminPage() {
   } | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  // Bulk delete
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+
   // Grant form
   const [grantEmail, setGrantEmail] = useState('')
   const [grantTier, setGrantTier] = useState<'rose' | 'gold' | 'platinum'>('rose')
@@ -105,8 +111,66 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (authed && password) loadTable(tab, password)
+    if (authed && password) {
+      const apiKey: TabKey = tab === 'calendar' ? 'bookings' : tab
+      loadTable(apiKey, password)
+    }
   }, [authed, password, tab, loadTable])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [tab])
+
+  const toggleId = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = (ids: string[]) => {
+    setSelectedIds((prev) => {
+      if (ids.length > 0 && ids.every((id) => prev.has(id))) return new Set()
+      return new Set(ids)
+    })
+  }
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true)
+    try {
+      const type =
+        tab === 'mirror_bookings'
+          ? 'mirror_booking'
+          : tab === 'loyalty_members'
+          ? 'loyalty_member'
+          : tab === 'customers'
+          ? 'customer'
+          : 'booking'
+      const ids = Array.from(selectedIds)
+      await Promise.all(
+        ids.map((id) =>
+          fetch('/api/admin/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, id, adminPassword: password }),
+          })
+        )
+      )
+      const idKey =
+        tab === 'customers'
+          ? 'customer_id'
+          : tab === 'loyalty_members'
+          ? 'membership_id'
+          : 'booking_id'
+      setRows((prev) => prev.filter((row) => !selectedIds.has(row[idKey])))
+      setSelectedIds(new Set())
+      setShowBulkConfirm(false)
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   useEffect(() => {
     if (!showFromPicker && !showToPicker) return
@@ -335,7 +399,8 @@ export default function AdminPage() {
       </nav>
 
       <section className="px-6 md:px-10 py-6">
-        {/* Filters row */}
+        {/* Filters row (hidden on calendar) */}
+        {tab !== 'calendar' && (
         <div className="flex flex-wrap items-center gap-3 mb-4">
           {tab === 'bookings' && (
             <>
@@ -488,6 +553,7 @@ export default function AdminPage() {
               : 'members'}
           </p>
         </div>
+        )}
 
         {/* Grant form — only on loyalty tab */}
         {tab === 'loyalty_members' && (
@@ -531,48 +597,97 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Table */}
-        <div
-          className="bg-white rounded-2xl border overflow-hidden"
-          style={{ borderColor: '#E5E7EB' }}
-        >
-          <div className="overflow-x-auto">
-            {fetchError ? (
-              <p className="p-6 text-sm" style={{ color: '#C4768A' }}>
-                {fetchError}
-              </p>
-            ) : loading ? (
-              <p className="p-6 text-sm" style={{ color: '#6B7280' }}>
-                Loading…
-              </p>
-            ) : filteredRows.length === 0 ? (
-              <p className="p-6 text-sm" style={{ color: '#6B7280' }}>
-                No rows.
-              </p>
-            ) : tab === 'bookings' ? (
-              <BookingsTable
-                rows={filteredRows}
-                onDelete={(id) => setDeleteTarget({ type: 'booking', id })}
-              />
-            ) : tab === 'mirror_bookings' ? (
-              <MirrorTable
-                rows={filteredRows}
-                onDelete={(id) => setDeleteTarget({ type: 'mirror_booking', id })}
-              />
-            ) : tab === 'customers' ? (
-              <CustomersTable
-                rows={filteredRows}
-                onDelete={(id) => setDeleteTarget({ type: 'customer', id })}
-              />
-            ) : (
-              <LoyaltyTable
-                rows={filteredRows}
-                onRevoke={handleRevoke}
-                onDelete={(id) => setDeleteTarget({ type: 'loyalty_member', id })}
-              />
-            )}
+        {/* Bulk-delete toolbar (hidden on calendar) */}
+        {selectedIds.size > 0 && tab !== 'calendar' && (
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <span className="text-sm" style={{ color: '#6B7280' }}>
+              {selectedIds.size} selected
+            </span>
+            <button
+              onClick={() => setShowBulkConfirm(true)}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-white"
+              style={{ backgroundColor: '#A85070' }}
+            >
+              Delete Selected ({selectedIds.size})
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="px-4 py-2 rounded-full text-sm border"
+              style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+            >
+              Clear
+            </button>
           </div>
-        </div>
+        )}
+
+        {tab === 'calendar' ? (
+          fetchError ? (
+            <p className="p-6 text-sm" style={{ color: '#C4768A' }}>
+              {fetchError}
+            </p>
+          ) : loading ? (
+            <p className="p-6 text-sm" style={{ color: '#6B7280' }}>
+              Loading…
+            </p>
+          ) : (
+            <CalendarView bookings={rows} />
+          )
+        ) : (
+          /* Table */
+          <div
+            className="bg-white rounded-2xl border overflow-hidden"
+            style={{ borderColor: '#E5E7EB' }}
+          >
+            <div className="overflow-x-auto">
+              {fetchError ? (
+                <p className="p-6 text-sm" style={{ color: '#C4768A' }}>
+                  {fetchError}
+                </p>
+              ) : loading ? (
+                <p className="p-6 text-sm" style={{ color: '#6B7280' }}>
+                  Loading…
+                </p>
+              ) : filteredRows.length === 0 ? (
+                <p className="p-6 text-sm" style={{ color: '#6B7280' }}>
+                  No rows.
+                </p>
+              ) : tab === 'bookings' ? (
+                <BookingsTable
+                  rows={filteredRows}
+                  selectedIds={selectedIds}
+                  toggleId={toggleId}
+                  toggleAll={toggleAll}
+                  onDelete={(id) => setDeleteTarget({ type: 'booking', id })}
+                />
+              ) : tab === 'mirror_bookings' ? (
+                <MirrorTable
+                  rows={filteredRows}
+                  selectedIds={selectedIds}
+                  toggleId={toggleId}
+                  toggleAll={toggleAll}
+                  onDelete={(id) => setDeleteTarget({ type: 'mirror_booking', id })}
+                />
+              ) : tab === 'customers' ? (
+                <CustomersTable
+                  rows={filteredRows}
+                  selectedIds={selectedIds}
+                  toggleId={toggleId}
+                  toggleAll={toggleAll}
+                  onDelete={(id) => setDeleteTarget({ type: 'customer', id })}
+                />
+              ) : (
+                <LoyaltyTable
+                  rows={filteredRows}
+                  selectedIds={selectedIds}
+                  toggleId={toggleId}
+                  toggleAll={toggleAll}
+                  onRevoke={handleRevoke}
+                  onDelete={(id) => setDeleteTarget({ type: 'loyalty_member', id })}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {deleteTarget && (
@@ -604,6 +719,41 @@ export default function AdminPage() {
                 style={{ backgroundColor: '#C4768A' }}
               >
                 {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBulkConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <h3 className="text-lg font-black mb-2" style={{ color: '#1A1A1A' }}>
+              Delete {selectedIds.size} items?
+            </h3>
+            <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
+              This will permanently delete {selectedIds.size} selected{' '}
+              {tab.replace('_', ' ')}. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBulkConfirm(false)}
+                disabled={bulkDeleting}
+                className="flex-1 rounded-full py-3 text-sm font-semibold border"
+                style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="flex-1 rounded-full py-3 text-sm font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: '#A85070' }}
+              >
+                {bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size}`}
               </button>
             </div>
           </div>
@@ -653,15 +803,32 @@ function fmt(value: any) {
 
 function BookingsTable({
   rows,
+  selectedIds,
+  toggleId,
+  toggleAll,
   onDelete,
 }: {
   rows: any[]
+  selectedIds: Set<string>
+  toggleId: (id: string) => void
+  toggleAll: (ids: string[]) => void
   onDelete: (id: string) => void
 }) {
+  const ids = rows.map((r) => r.booking_id)
+  const allSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id))
   return (
     <table className="w-full">
       <thead>
         <tr>
+          <th className="px-4 py-3 w-10" style={{ backgroundColor: '#F9FAFB' }}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => toggleAll(ids)}
+              className="rounded"
+              style={{ accentColor: '#A85070' }}
+            />
+          </th>
           <Th>Booking ID</Th>
           <Th>Customer</Th>
           <Th>Service</Th>
@@ -679,6 +846,15 @@ function BookingsTable({
           const badge = STATUS_BADGE(r.status)
           return (
             <tr key={r.booking_id ?? i} style={{ backgroundColor: i % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
+              <td className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(r.booking_id)}
+                  onChange={() => toggleId(r.booking_id)}
+                  className="rounded"
+                  style={{ accentColor: '#A85070' }}
+                />
+              </td>
               <Td mono>{r.booking_id}</Td>
               <Td>{r.customer_name}</Td>
               <Td>{r.service}</Td>
@@ -705,15 +881,32 @@ function BookingsTable({
 
 function MirrorTable({
   rows,
+  selectedIds,
+  toggleId,
+  toggleAll,
   onDelete,
 }: {
   rows: any[]
+  selectedIds: Set<string>
+  toggleId: (id: string) => void
+  toggleAll: (ids: string[]) => void
   onDelete: (id: string) => void
 }) {
+  const ids = rows.map((r) => r.booking_id)
+  const allSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id))
   return (
     <table className="w-full">
       <thead>
         <tr>
+          <th className="px-4 py-3 w-10" style={{ backgroundColor: '#F9FAFB' }}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => toggleAll(ids)}
+              className="rounded"
+              style={{ accentColor: '#A85070' }}
+            />
+          </th>
           <Th>Booking ID</Th>
           <Th>Name</Th>
           <Th>Phone</Th>
@@ -728,6 +921,15 @@ function MirrorTable({
       <tbody>
         {rows.map((r, i) => (
           <tr key={r.booking_id ?? i} style={{ backgroundColor: i % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
+            <td className="px-4 py-3">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(r.booking_id)}
+                onChange={() => toggleId(r.booking_id)}
+                className="rounded"
+                style={{ accentColor: '#A85070' }}
+              />
+            </td>
             <Td mono>{r.booking_id}</Td>
             <Td>{r.name}</Td>
             <Td>{r.phone}</Td>
@@ -748,15 +950,32 @@ function MirrorTable({
 
 function CustomersTable({
   rows,
+  selectedIds,
+  toggleId,
+  toggleAll,
   onDelete,
 }: {
   rows: any[]
+  selectedIds: Set<string>
+  toggleId: (id: string) => void
+  toggleAll: (ids: string[]) => void
   onDelete: (id: string) => void
 }) {
+  const ids = rows.map((r) => r.customer_id)
+  const allSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id))
   return (
     <table className="w-full">
       <thead>
         <tr>
+          <th className="px-4 py-3 w-10" style={{ backgroundColor: '#F9FAFB' }}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => toggleAll(ids)}
+              className="rounded"
+              style={{ accentColor: '#A85070' }}
+            />
+          </th>
           <Th>Customer ID</Th>
           <Th>Name</Th>
           <Th>Email</Th>
@@ -769,6 +988,15 @@ function CustomersTable({
       <tbody>
         {rows.map((r, i) => (
           <tr key={r.customer_id ?? i} style={{ backgroundColor: i % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
+            <td className="px-4 py-3">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(r.customer_id)}
+                onChange={() => toggleId(r.customer_id)}
+                className="rounded"
+                style={{ accentColor: '#A85070' }}
+              />
+            </td>
             <Td mono>{r.customer_id}</Td>
             <Td>{r.name}</Td>
             <Td>{r.email}</Td>
@@ -799,17 +1027,34 @@ function DeleteButton({ onClick }: { onClick: () => void }) {
 
 function LoyaltyTable({
   rows,
+  selectedIds,
+  toggleId,
+  toggleAll,
   onRevoke,
   onDelete,
 }: {
   rows: any[]
+  selectedIds: Set<string>
+  toggleId: (id: string) => void
+  toggleAll: (ids: string[]) => void
   onRevoke: (id: string) => void
   onDelete: (id: string) => void
 }) {
+  const ids = rows.map((r) => r.membership_id)
+  const allSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id))
   return (
     <table className="w-full">
       <thead>
         <tr>
+          <th className="px-4 py-3 w-10" style={{ backgroundColor: '#F9FAFB' }}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => toggleAll(ids)}
+              className="rounded"
+              style={{ accentColor: '#A85070' }}
+            />
+          </th>
           <Th>Membership ID</Th>
           <Th>Name</Th>
           <Th>Email</Th>
@@ -829,6 +1074,15 @@ function LoyaltyTable({
           const statusBadge = STATUS_BADGE(r.status)
           return (
             <tr key={r.membership_id ?? i} style={{ backgroundColor: i % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
+              <td className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(r.membership_id)}
+                  onChange={() => toggleId(r.membership_id)}
+                  className="rounded"
+                  style={{ accentColor: '#A85070' }}
+                />
+              </td>
               <Td mono>{r.membership_id}</Td>
               <Td>{r.name}</Td>
               <Td>{r.email}</Td>
@@ -866,5 +1120,274 @@ function LoyaltyTable({
         })}
       </tbody>
     </table>
+  )
+}
+
+function CalendarView({ bookings }: { bookings: any[] }) {
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [viewMode, setViewMode] = useState<'week' | 'day'>('week')
+
+  const specialists = ['Muna Sherpa', 'Sadaf Shaazadi', 'Devi Gajnayake']
+
+  const getWeekDays = (date: Date) => {
+    const start = new Date(date)
+    start.setDate(date.getDate() - date.getDay())
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      return d
+    })
+  }
+
+  const weekDays = viewMode === 'week' ? getWeekDays(currentDate) : [currentDate]
+
+  const goBack = () => {
+    const d = new Date(currentDate)
+    d.setDate(d.getDate() - (viewMode === 'week' ? 7 : 1))
+    setCurrentDate(d)
+  }
+
+  const goForward = () => {
+    const d = new Date(currentDate)
+    d.setDate(d.getDate() + (viewMode === 'week' ? 7 : 1))
+    setCurrentDate(d)
+  }
+
+  const goToToday = () => setCurrentDate(new Date())
+
+  const getBookingsForDayAndSpecialist = (day: Date, specialist: string) => {
+    const dateStr = format(day, 'yyyy-MM-dd')
+    return bookings
+      .filter((b) => b.date === dateStr && b.specialist === specialist && b.status !== 'cancelled')
+      .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
+  }
+
+  const specialistColors: Record<string, { bg: string; text: string; border: string }> = {
+    'Muna Sherpa':    { bg: '#FDF0F3', text: '#A85070', border: '#F2C4D0' },
+    'Sadaf Shaazadi': { bg: '#F0F4FF', text: '#4060C4', border: '#C4D0F2' },
+    'Devi Gajnayake': { bg: '#F0FDF4', text: '#2D7A4F', border: '#C4E8D0' },
+  }
+
+  const isToday = (d: Date) =>
+    format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+  const isMonday = (d: Date) => d.getDay() === 1
+
+  return (
+    <div>
+      {/* Calendar header */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={goBack}
+            className="w-8 h-8 flex items-center justify-center rounded-full border"
+            style={{ borderColor: '#E5E7EB' }}
+          >
+            ‹
+          </button>
+          <h2 className="text-lg font-bold" style={{ color: '#1A1A1A' }}>
+            {viewMode === 'week'
+              ? `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
+              : format(currentDate, 'EEEE, MMMM d, yyyy')}
+          </h2>
+          <button
+            onClick={goForward}
+            className="w-8 h-8 flex items-center justify-center rounded-full border"
+            style={{ borderColor: '#E5E7EB' }}
+          >
+            ›
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={goToToday}
+            className="px-4 py-1.5 rounded-full text-xs font-bold border"
+            style={{ borderColor: '#E5E7EB', color: '#1A1A1A' }}
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setViewMode('week')}
+            className="px-4 py-1.5 rounded-full text-xs font-bold"
+            style={{
+              backgroundColor: viewMode === 'week' ? '#A85070' : '#FFFFFF',
+              color: viewMode === 'week' ? '#FFFFFF' : '#1A1A1A',
+              border: '1px solid #E5E7EB',
+            }}
+          >
+            Week
+          </button>
+          <button
+            onClick={() => setViewMode('day')}
+            className="px-4 py-1.5 rounded-full text-xs font-bold"
+            style={{
+              backgroundColor: viewMode === 'day' ? '#A85070' : '#FFFFFF',
+              color: viewMode === 'day' ? '#FFFFFF' : '#1A1A1A',
+              border: '1px solid #E5E7EB',
+            }}
+          >
+            Day
+          </button>
+        </div>
+      </div>
+
+      {/* Specialist legend */}
+      <div className="flex gap-4 mb-4 flex-wrap">
+        {specialists.map((sp) => (
+          <div key={sp} className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: specialistColors[sp]?.border }}
+            />
+            <span className="text-xs" style={{ color: '#6B7280' }}>
+              {sp}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div
+        className="bg-white rounded-2xl border overflow-hidden"
+        style={{ borderColor: '#E5E7EB' }}
+      >
+        {/* Day headers */}
+        <div
+          className="grid border-b"
+          style={{
+            gridTemplateColumns: `120px repeat(${weekDays.length}, 1fr)`,
+            borderColor: '#E5E7EB',
+          }}
+        >
+          <div className="p-3 border-r" style={{ borderColor: '#E5E7EB' }} />
+          {weekDays.map((day) => (
+            <div
+              key={day.toISOString()}
+              className="p-3 text-center border-r last:border-r-0"
+              style={{
+                borderColor: '#E5E7EB',
+                backgroundColor: isToday(day)
+                  ? '#FDF0F3'
+                  : isMonday(day)
+                  ? '#F9FAFB'
+                  : '#FFFFFF',
+              }}
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: '#9CA3AF' }}
+              >
+                {format(day, 'EEE')}
+              </p>
+              <p
+                className="text-lg font-black mt-0.5"
+                style={{
+                  color: isToday(day)
+                    ? '#A85070'
+                    : isMonday(day)
+                    ? '#D1D5DB'
+                    : '#1A1A1A',
+                }}
+              >
+                {format(day, 'd')}
+              </p>
+              {isMonday(day) && (
+                <p className="text-xs" style={{ color: '#D1D5DB' }}>
+                  Closed
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Specialist rows */}
+        {specialists.map((specialist) => (
+          <div
+            key={specialist}
+            className="grid border-b last:border-b-0"
+            style={{
+              gridTemplateColumns: `120px repeat(${weekDays.length}, 1fr)`,
+              borderColor: '#E5E7EB',
+              minHeight: '100px',
+            }}
+          >
+            <div
+              className="p-3 border-r flex items-start"
+              style={{ borderColor: '#E5E7EB', backgroundColor: '#FAFAFA' }}
+            >
+              <div>
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white mb-1"
+                  style={{
+                    backgroundColor: specialistColors[specialist]?.border ?? '#C4768A',
+                  }}
+                >
+                  {specialist.split(' ').map((s) => s[0]).join('')}
+                </div>
+                <p
+                  className="text-xs font-semibold leading-tight"
+                  style={{ color: '#1A1A1A' }}
+                >
+                  {specialist.split(' ')[0]}
+                </p>
+                <p className="text-xs leading-tight" style={{ color: '#9CA3AF' }}>
+                  {specialist.split(' ')[1]}
+                </p>
+              </div>
+            </div>
+
+            {weekDays.map((day) => {
+              const dayBookings = getBookingsForDayAndSpecialist(day, specialist)
+              const colors = specialistColors[specialist]
+              return (
+                <div
+                  key={day.toISOString()}
+                  className="p-2 border-r last:border-r-0"
+                  style={{
+                    borderColor: '#E5E7EB',
+                    backgroundColor: isMonday(day) ? '#F9FAFB' : '#FFFFFF',
+                    minHeight: '100px',
+                  }}
+                >
+                  {isMonday(day) ? (
+                    <p
+                      className="text-xs text-center mt-4"
+                      style={{ color: '#D1D5DB' }}
+                    >
+                      —
+                    </p>
+                  ) : dayBookings.length === 0 ? null : (
+                    <div className="space-y-1">
+                      {dayBookings.map((b) => (
+                        <div
+                          key={b.booking_id}
+                          className="rounded-lg p-1.5 text-xs"
+                          style={{
+                            backgroundColor: colors?.bg,
+                            border: `1px solid ${colors?.border}`,
+                            color: colors?.text,
+                          }}
+                        >
+                          <p className="font-bold leading-tight">{b.time}</p>
+                          <p className="leading-tight truncate">{b.service}</p>
+                          <p className="leading-tight truncate opacity-75">
+                            {b.customer_name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+
+      {bookings.filter((b) => b.status !== 'cancelled').length === 0 && (
+        <p className="text-center py-12 text-sm" style={{ color: '#9CA3AF' }}>
+          No bookings to display.
+        </p>
+      )}
+    </div>
   )
 }
