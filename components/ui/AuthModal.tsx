@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useBookingStore } from '@/lib/bookingStore'
@@ -22,7 +21,6 @@ export default function AuthModal() {
     selectedTier,
   } = useBookingStore()
   const { refetch } = useCustomer()
-  const router = useRouter()
   const [tab, setTab] = useState<Tab>('signin')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +37,6 @@ export default function AuthModal() {
 
   const afterAuth = async () => {
     await refetch()
-    router.refresh()
     close()
     if (pendingBooking) {
       setPendingBooking(false)
@@ -100,9 +97,9 @@ export default function AuthModal() {
     <AnimatePresence>
       {authOpen && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, pointerEvents: 'none' }}
+          animate={{ opacity: 1, pointerEvents: 'auto' }}
+          exit={{ opacity: 0, pointerEvents: 'none' }}
           className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={close}
         >
