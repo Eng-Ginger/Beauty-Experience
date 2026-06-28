@@ -31,12 +31,6 @@ const SPECIALISTS = [
   },
 ]
 
-const TIME_SLOTS = {
-  Morning: ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30'],
-  Afternoon: ['13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'],
-  Evening: ['17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'],
-}
-
 const ADD_ONS = [
   {
     id: 'glow-boost',
@@ -79,8 +73,6 @@ export default function BookingModal() {
     openAuth,
     setPendingBooking,
     preSelectedService,
-    selectedItems,
-    setSelectedItems,
   } = useBookingStore()
   const { customer } = useCustomer()
   const [step, setStep] = useState(1)
@@ -152,25 +144,13 @@ export default function BookingModal() {
     '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00',
   ]
 
-  const basePrice = selectedItems.reduce((sum, i) => sum + i.price, 0)
-  const addOnsSubtotal = ADD_ONS.filter((a) => addOns.includes(a.id)).reduce(
-    (sum, a) => sum + a.price,
-    0
-  )
-  const subtotal = basePrice + addOnsSubtotal
-  const discountPercent = customer?.membership?.discountPercent ?? 0
-  const discountAmount = Math.round(subtotal * (discountPercent / 100))
-  const finalTotal = subtotal - discountAmount
-
   const confirm = async () => {
     if (!service || !date || !time || !specialist) return
     setSubmitting(true)
     setError(null)
     try {
-      const finalPrice = selectedItems.length > 0 ? finalTotal : null
-      const serviceLabel = selectedItems.length > 0
-        ? selectedItems.map((i) => i.name).join(', ')
-        : service.label
+      const serviceLabel = service.label
+      const finalPrice = null
       const res = await fetch('/api/bookings/create', {
         method: 'POST',
         credentials: 'include',
@@ -319,64 +299,32 @@ export default function BookingModal() {
                         )}
                         <div className="space-y-2">
                           {service.items.map((item) => {
-                            const isSelected = selectedItems.some((i) => i.name === item.name)
                             const discountedPrice = customer?.membership
-                              ? Math.round(
-                                  item.price * (1 - customer.membership.discountPercent / 100)
-                                )
+                              ? Math.round(item.price * (1 - customer.membership.discountPercent / 100))
                               : item.price
                             return (
                               <button
                                 key={item.name}
                                 onClick={() => {
-                                  setSelectedItems(
-                                    isSelected
-                                      ? selectedItems.filter((i) => i.name !== item.name)
-                                      : [...selectedItems, item]
-                                  )
+                                  setServiceKey(serviceKey)
+                                  setStep(2)
                                 }}
-                                className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-colors gap-3 ${
-                                  isSelected
-                                    ? 'border-rose bg-dusty'
-                                    : 'border-gray-100 hover:border-blush/50'
-                                }`}
+                                className="w-full flex items-center justify-between p-4 rounded-xl border text-left transition-colors gap-3 border-gray-100 hover:border-blush/50"
                               >
-                                <span className="text-sm font-medium text-charcoal flex items-center gap-2">
-                                  {isSelected && <span className="text-rose">✓</span>}
-                                  {item.name}
-                                </span>
+                                <span className="text-sm font-medium text-charcoal">{item.name}</span>
                                 <div className="text-right shrink-0">
                                   {customer?.membership ? (
                                     <>
-                                      <span className="text-xs text-gray-400 line-through mr-2">
-                                        {item.price} AED
-                                      </span>
-                                      <span className="text-sm font-bold text-rose">
-                                        {discountedPrice} AED
-                                      </span>
+                                      <span className="text-xs text-gray-400 line-through mr-2">{item.price} AED</span>
+                                      <span className="text-sm font-bold text-rose">{discountedPrice} AED</span>
                                     </>
                                   ) : (
-                                    <span className="text-sm font-bold text-rose">
-                                      {item.price} AED
-                                    </span>
+                                    <span className="text-sm font-bold text-rose">{item.price} AED</span>
                                   )}
                                 </div>
                               </button>
                             )
                           })}
-                        </div>
-                        <div className="mt-6 flex justify-between items-center">
-                          <p className="text-sm text-gray-500">
-                            {selectedItems.length} service{selectedItems.length !== 1 ? 's' : ''} selected
-                          </p>
-                          <button
-                            onClick={() => setStep(2)}
-                            disabled={selectedItems.length === 0}
-                            className="rounded-full px-8 py-3 font-semibold text-white text-sm uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-opacity"
-                            style={{ backgroundColor: '#A85070' }}
-                          >
-                            Continue →
-                          </button>
                         </div>
                       </div>
                     ) : (
@@ -411,12 +359,9 @@ export default function BookingModal() {
                     <div className="pb-4">
                       <h2 className="text-2xl font-black text-charcoal mb-1">Pick a date & time</h2>
                       <p className="text-sm text-gray-500 mb-3">All times UAE standard time (GST+4).</p>
-                      {(selectedItems.length > 0 || service) && (
+                      {service && (
                         <div className="bg-dusty text-rose text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full inline-flex items-center gap-2 mb-5">
-                          <Check size={12} />{' '}
-                          {selectedItems.length > 0
-                            ? selectedItems.map((i) => i.name).join(', ')
-                            : service?.label}
+                          <Check size={12} /> {service.label}
                         </div>
                       )}
 
@@ -550,14 +495,8 @@ export default function BookingModal() {
 
                       <div className="bg-off-white rounded-2xl p-5 mb-5 space-y-2 text-sm">
                         <div className="flex justify-between gap-3">
-                          <span className="text-gray-500 shrink-0">
-                            {selectedItems.length > 1 ? 'Services' : 'Service'}
-                          </span>
-                          <span className="font-semibold text-right">
-                            {selectedItems.length > 0
-                              ? selectedItems.map((i) => i.name).join(', ')
-                              : service?.label}
-                          </span>
+                          <span className="text-gray-500 shrink-0">Service</span>
+                          <span className="font-semibold text-right">{service?.label}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">When</span>
@@ -621,45 +560,6 @@ export default function BookingModal() {
                         })}
                       </div>
 
-                      {selectedItems.length > 0 && (
-                        <div className="bg-[#FAF7F5] rounded-2xl p-5 mb-5 space-y-2">
-                          {selectedItems.map((item) => (
-                            <div key={item.name} className="flex justify-between text-sm gap-3">
-                              <span className="text-gray-500">{item.name}</span>
-                              <span className="text-charcoal shrink-0">{item.price} AED</span>
-                            </div>
-                          ))}
-                          {addOns.map((id) => {
-                            const addon = ADD_ONS.find((a) => a.id === id)
-                            return addon ? (
-                              <div key={id} className="flex justify-between text-sm">
-                                <span className="text-gray-500">{addon.label}</span>
-                                <span className="text-charcoal">+{addon.price} AED</span>
-                              </div>
-                            ) : null
-                          })}
-                          <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-                            <span className="text-gray-500">Subtotal</span>
-                            <span className="text-charcoal">{subtotal} AED</span>
-                          </div>
-                          {discountPercent > 0 && customer?.membership && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">
-                                {discountPercent}% {customer.membership.tier} discount
-                              </span>
-                              <span className="text-green-600">−{discountAmount} AED</span>
-                            </div>
-                          )}
-                          <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between">
-                            <span className="font-bold text-charcoal">Total</span>
-                            <span className="font-bold text-rose text-lg">{finalTotal} AED</span>
-                          </div>
-                          <p className="text-xs mt-1 text-right" style={{ color: '#9CA3AF' }}>
-                            * Prices are exclusive of VAT
-                          </p>
-                        </div>
-                      )}
-
                       <p className="text-sm font-bold text-charcoal mb-2">Special requests</p>
                       <textarea
                         rows={3}
@@ -715,26 +615,9 @@ export default function BookingModal() {
                       </p>
                       <div className="bg-off-white rounded-2xl p-5 mb-6 text-left space-y-2 text-sm max-w-sm mx-auto">
                         <div className="flex justify-between gap-3">
-                          <span className="text-gray-500 shrink-0">
-                            {selectedItems.length > 1 ? 'Services' : 'Service'}
-                          </span>
-                          <span className="font-semibold text-right">
-                            {selectedItems.length > 0
-                              ? selectedItems.map((i) => i.name).join(', ')
-                              : service?.label}
-                          </span>
+                          <span className="text-gray-500 shrink-0">Service</span>
+                          <span className="font-semibold text-right">{service?.label}</span>
                         </div>
-                        {selectedItems.length > 0 && (
-                          <>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Total</span>
-                              <span className="font-bold text-rose">{finalTotal} AED</span>
-                            </div>
-                            <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                              * Prices are exclusive of VAT
-                            </p>
-                          </>
-                        )}
                         <div className="flex justify-between">
                           <span className="text-gray-500">When</span>
                           <span className="font-semibold">
