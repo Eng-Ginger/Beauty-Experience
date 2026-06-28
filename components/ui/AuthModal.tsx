@@ -43,10 +43,10 @@ export default function AuthModal() {
     close()
     if (pendingBooking) {
       setPendingBooking(false)
-      setTimeout(() => openBooking(), 200)
+      setTimeout(() => openBooking(), 400)
     } else if (pendingLoyalty) {
       setPendingLoyalty(false)
-      setTimeout(() => openLoyalty(selectedTier ?? undefined), 200)
+      setTimeout(() => openLoyalty(selectedTier ?? undefined), 400)
     }
   }
 

@@ -20,6 +20,25 @@ export async function activateLoyaltyMembership(intentId: string) {
   // step that was missing: without it, /api/auth/me's join can never find
   // an active membership for this customer.
   if (updatedMember?.email) {
+    // If the customer already had a prior membership row, mark it 'upgraded'
+    // so we don't end up with two rows in status='active' for the same email.
+    // Matches the same side-effect the admin grant route performs.
+    const { data: customer } = await supabaseAdmin
+      .from('customers')
+      .select('membership_id')
+      .eq('email', updatedMember.email)
+      .maybeSingle()
+
+    if (
+      customer?.membership_id &&
+      customer.membership_id !== updatedMember.membership_id
+    ) {
+      await supabaseAdmin
+        .from('loyalty_members')
+        .update({ status: 'upgraded' })
+        .eq('membership_id', customer.membership_id)
+    }
+
     await supabaseAdmin
       .from('customers')
       .update({ membership_id: updatedMember.membership_id })

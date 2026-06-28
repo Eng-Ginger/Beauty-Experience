@@ -172,7 +172,7 @@ export default function SmartMirrorModal() {
                   onClick={() => {
                     closeMirror()
                     setPendingBooking(false)
-                    setTimeout(() => openAuth(), 150)
+                    setTimeout(() => openAuth(), 200)
                   }}
                   className="w-full max-w-xs bg-rose text-white rounded-full py-4 font-bold text-sm uppercase tracking-widest"
                 >

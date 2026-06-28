@@ -8,6 +8,17 @@ import { useBookingStore } from '@/lib/bookingStore'
 import { useCustomer } from '@/lib/useCustomer'
 import { useScrollLock } from '@/lib/useScrollLock'
 
+const TIER_RANKS: Record<string, number> = { rose: 1, gold: 2, platinum: 3 }
+const getTierRank = (t: string | null | undefined) =>
+  (t && TIER_RANKS[t.toLowerCase()]) ?? 0
+
+type CurrentMembership = {
+  tier: string
+  status: string
+  expires_at: string
+  discount_percent?: number
+}
+
 const TERMS = [
   'Membership is valid for 12 months from date of purchase.',
   'Benefits are non-transferable and may only be used by the registered member.',
@@ -33,8 +44,28 @@ export default function LoyaltyModal() {
   const [loading, setLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [tcOpen, setTcOpen] = useState(false)
+  const [currentMembership, setCurrentMembership] = useState<CurrentMembership | null>(null)
 
   useScrollLock(loyaltyOpen)
+
+  useEffect(() => {
+    if (!customer || !loyaltyOpen) {
+      setCurrentMembership(null)
+      return
+    }
+    let cancelled = false
+    fetch('/api/loyalty/my-membership', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : { membership: null }))
+      .then((data) => {
+        if (!cancelled) setCurrentMembership(data?.membership ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentMembership(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [customer, loyaltyOpen])
 
   useEffect(() => {
     if (loyaltyOpen) {
@@ -154,7 +185,7 @@ export default function LoyaltyModal() {
                   onClick={() => {
                     closeLoyalty()
                     setPendingLoyalty(true)
-                    setTimeout(() => openAuth(), 150)
+                    setTimeout(() => openAuth(), 200)
                   }}
                   className="w-full max-w-xs bg-rose text-white rounded-full py-4 font-bold text-sm uppercase tracking-widest"
                 >
@@ -162,6 +193,54 @@ export default function LoyaltyModal() {
                 </button>
                 <button onClick={close} className="text-sm text-gray-400 underline">
                   Maybe later
+                </button>
+              </div>
+            ) : currentMembership?.status === 'active' &&
+              tier &&
+              currentMembership.tier.toLowerCase() === tier.toLowerCase() ? (
+              <div className="flex flex-col items-center justify-center py-16 px-8 text-center gap-2 min-h-[400px]">
+                <div className="text-4xl mb-2">✨</div>
+                <h2 className="text-2xl font-black mb-2" style={{ color: '#1A1A1A' }}>
+                  You're already a {LOYALTY_TIERS[tier].name.split(' ')[0]} Member!
+                </h2>
+                <p className="text-sm mb-6 max-w-xs" style={{ color: '#6B7280' }}>
+                  Your membership is active until{' '}
+                  {new Date(currentMembership.expires_at).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                  .
+                </p>
+                <button
+                  onClick={close}
+                  className="rounded-full px-8 py-3 font-semibold text-white text-sm uppercase tracking-widest"
+                  style={{ backgroundColor: '#A85070' }}
+                >
+                  Back to Salon
+                </button>
+              </div>
+            ) : currentMembership?.status === 'active' &&
+              tier &&
+              getTierRank(currentMembership.tier) > getTierRank(tier) ? (
+              <div className="flex flex-col items-center justify-center py-16 px-8 text-center gap-2 min-h-[400px]">
+                <div className="text-4xl mb-2">⚠️</div>
+                <h2 className="text-2xl font-black mb-2" style={{ color: '#1A1A1A' }}>
+                  You already have a higher tier
+                </h2>
+                <p className="text-sm mb-6 max-w-sm" style={{ color: '#6B7280' }}>
+                  You're currently a{' '}
+                  <span className="capitalize font-semibold">{currentMembership.tier}</span>{' '}
+                  member. Switching to{' '}
+                  <span className="capitalize font-semibold">{tier}</span> would be a downgrade.
+                  Please contact us if you'd like to make changes.
+                </p>
+                <button
+                  onClick={close}
+                  className="rounded-full px-8 py-3 font-semibold text-white text-sm uppercase tracking-widest"
+                  style={{ backgroundColor: '#A85070' }}
+                >
+                  Keep My <span className="capitalize">{currentMembership.tier}</span> Membership
                 </button>
               </div>
             ) : step === 1 ? (
