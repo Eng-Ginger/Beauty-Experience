@@ -8,7 +8,11 @@ const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
-  phone: z.string().optional().nullable(),
+  phone: z
+    .string()
+    .regex(/^\+971[0-9]{9}$/, 'Invalid UAE phone number')
+    .optional()
+    .nullable(),
   dob: z.string().optional().nullable(),
 })
 
