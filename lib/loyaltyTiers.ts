@@ -33,9 +33,10 @@ export const LOYALTY_TIERS: Record<LoyaltyTierKey, LoyaltyTier> = {
   },
   gold: {
     name: 'Gold Member',
-    price: 299,
-    amountFils: 29900,
-    label: 'AED 299 / Year',
+    // TEST PRICE — live Ziina payment testing. To revert: price 299, amountFils 29900, label 'AED 299 / Year'.
+    price: 2,
+    amountFils: 200,
+    label: 'AED 2 / Year',
     badge: '✦',
     gradient: 'linear-gradient(135deg, #C9A882, #E8D5B8)',
     discountPercent: 15,
