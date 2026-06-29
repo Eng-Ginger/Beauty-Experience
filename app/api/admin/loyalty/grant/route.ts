@@ -16,10 +16,6 @@ const schema = z.object({
   adminPassword: z.string().min(1),
 })
 
-function randomSix() {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
-
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
   const limit = checkAdminRateLimit(ip)
@@ -58,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const tierInfo = LOYALTY_TIERS[tier as LoyaltyTierKey]
-    const membershipId = `BE-${tier[0].toUpperCase()}-${randomSix()}`
+    const membershipId = customer.customer_id
 
     if (customer.membership_id) {
       await supabaseAdmin

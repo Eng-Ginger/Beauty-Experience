@@ -948,6 +948,102 @@ function MirrorTable({
   )
 }
 
+function ResetPasswordButton({ customerId }: { customerId: string }) {
+  const [open, setOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  const handleReset = async () => {
+    if (newPassword.length < 8) {
+      setErr('Minimum 8 characters')
+      return
+    }
+    setLoading(true)
+    setErr(null)
+    const res = await fetch('/api/admin/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerId,
+        newPassword,
+        adminPassword: sessionStorage.getItem('adminPassword'),
+      }),
+    })
+    const data = await res.json()
+    setLoading(false)
+    if (!res.ok) {
+      setErr(data.error || 'Failed')
+      return
+    }
+    setDone(true)
+    setTimeout(() => {
+      setOpen(false)
+      setDone(false)
+      setNewPassword('')
+    }, 1500)
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs font-semibold px-3 py-1.5 rounded-lg border"
+        style={{ borderColor: '#E5E7EB', color: '#A85070' }}
+      >
+        Reset
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl space-y-4">
+            <h3 className="font-bold text-charcoal">Reset Password</h3>
+            <p className="text-sm text-gray-500">
+              Customer ID: <span className="font-mono">{customerId}</span>
+            </p>
+            {done ? (
+              <p className="text-green-600 font-semibold text-sm">Password updated!</p>
+            ) : (
+              <>
+                <input
+                  type="password"
+                  placeholder="New password (min 8 chars)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-3 text-sm outline-none"
+                  style={{ borderColor: '#E5E7EB' }}
+                />
+                {err && <p className="text-rose text-xs">{err}</p>}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setOpen(false)
+                      setNewPassword('')
+                      setErr(null)
+                    }}
+                    className="flex-1 border rounded-xl py-2.5 text-sm font-semibold"
+                    style={{ borderColor: '#E5E7EB' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    disabled={loading}
+                    className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                    style={{ backgroundColor: '#A85070' }}
+                  >
+                    {loading ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 function CustomersTable({
   rows,
   selectedIds,
@@ -982,6 +1078,7 @@ function CustomersTable({
           <Th>Phone</Th>
           <Th>Date of Birth</Th>
           <Th>Membership ID</Th>
+          <Th>Reset Password</Th>
           <Th></Th>
         </tr>
       </thead>
@@ -1003,6 +1100,9 @@ function CustomersTable({
             <Td>{r.phone}</Td>
             <Td>{r.dob}</Td>
             <Td mono>{r.membership_id}</Td>
+            <Td>
+              <ResetPasswordButton customerId={r.customer_id} />
+            </Td>
             <Td>
               <DeleteButton onClick={() => onDelete(r.customer_id)} />
             </Td>

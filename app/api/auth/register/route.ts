@@ -16,8 +16,16 @@ const schema = z.object({
   dob: z.string().optional().nullable(),
 })
 
-function randomSix() {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+async function nextCustomerId(): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from('customers')
+    .select('customer_id')
+    .order('customer_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const last = data?.customer_id ? parseInt(data.customer_id, 10) : 99999
+  const next = isNaN(last) ? 100001 : last + 1
+  return next.toString()
 }
 
 export async function POST(req: NextRequest) {
@@ -40,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
-    const customerId = randomSix()
+    const customerId = await nextCustomerId()
 
     const { data, error } = await supabaseAdmin
       .from('customers')
