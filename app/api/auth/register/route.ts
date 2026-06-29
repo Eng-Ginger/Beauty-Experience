@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const { data: existing } = await supabaseAdmin
       .from('customers')
-      .select('id')
+      .select('customer_id')
       .eq('email', email.toLowerCase())
       .maybeSingle()
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
-    const customerId = `BE-C-${randomSix()}`
+    const customerId = randomSix()
 
     const { data, error } = await supabaseAdmin
       .from('customers')
