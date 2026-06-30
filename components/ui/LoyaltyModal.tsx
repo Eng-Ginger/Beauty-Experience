@@ -45,6 +45,7 @@ export default function LoyaltyModal() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [tcOpen, setTcOpen] = useState(false)
   const [currentMembership, setCurrentMembership] = useState<CurrentMembership | null>(null)
+  const [membershipLoading, setMembershipLoading] = useState(false)
 
   useScrollLock(loyaltyOpen)
 
@@ -54,13 +55,20 @@ export default function LoyaltyModal() {
       return
     }
     let cancelled = false
+    setMembershipLoading(true)
     fetch('/api/loyalty/my-membership', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : { membership: null }))
       .then((data) => {
-        if (!cancelled) setCurrentMembership(data?.membership ?? null)
+        if (!cancelled) {
+          setCurrentMembership(data?.membership ?? null)
+          setMembershipLoading(false)
+        }
       })
       .catch(() => {
-        if (!cancelled) setCurrentMembership(null)
+        if (!cancelled) {
+          setCurrentMembership(null)
+          setMembershipLoading(false)
+        }
       })
     return () => {
       cancelled = true
@@ -194,6 +202,10 @@ export default function LoyaltyModal() {
                 <button onClick={close} className="text-sm text-gray-400 underline">
                   Maybe later
                 </button>
+              </div>
+            ) : membershipLoading ? (
+              <div className="flex flex-col items-center justify-center min-h-[400px]">
+                <div className="w-8 h-8 border-[3px] border-rose/30 border-t-rose rounded-full animate-spin" />
               </div>
             ) : currentMembership?.status === 'active' &&
               tier &&
