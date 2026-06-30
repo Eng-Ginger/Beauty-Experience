@@ -112,7 +112,7 @@ export default function AboutSection() {
               </div>
               <div className="flex items-center gap-4 pt-2">
                 <img
-                  src="/fresha-badge.jpeg"
+                  src="/fresha-badge.png"
                   alt="Fresha Highly Recommended 2026"
                   className="w-20 h-20 object-contain"
                 />
