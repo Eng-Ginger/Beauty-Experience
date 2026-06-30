@@ -6,6 +6,17 @@ import { SERVICES } from '@/lib/services'
 import { useBookingStore } from '@/lib/bookingStore'
 import { useCustomer } from '@/lib/useCustomer'
 
+const STARTING_FROM_KEYS = [
+  'henna',
+  'makeup',
+  'hair-blowdry',
+  'hair-wavy',
+  'hair-cut',
+  'hair-style',
+  'color',
+  'hair-treatment',
+]
+
 export default function ServicesSection() {
   const [openKey, setOpenKey] = useState<string | null>(null)
   const { openBookingWithService, openAuth, setPendingBooking } = useBookingStore()
@@ -93,7 +104,9 @@ export default function ServicesSection() {
                           >
                             <span className="text-sm text-charcoal">{item.name}</span>
                             <span className="text-sm font-bold text-rose shrink-0">
-                              {item.price} AED
+                              {STARTING_FROM_KEYS.includes(service.key)
+                                ? `From ${item.price} AED`
+                                : `${item.price} AED`}
                             </span>
                           </div>
                         ))}

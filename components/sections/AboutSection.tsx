@@ -97,17 +97,32 @@ export default function AboutSection() {
             all tailored to you.
           </p>
           <div className="border-t border-gray-100 pt-8">
-            <div className="grid grid-cols-3 gap-3 md:gap-12">
-              {STATS.map((stat) => (
-                <div key={stat.label} className="flex flex-col">
-                  <p className="text-2xl md:text-5xl font-black text-rose">
-                    <CountUp to={stat.value} suffix={stat.suffix} />
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-3 gap-3 md:gap-12">
+                {STATS.map((stat) => (
+                  <div key={stat.label} className="flex flex-col">
+                    <p className="text-2xl md:text-5xl font-black text-rose">
+                      <CountUp to={stat.value} suffix={stat.suffix} />
+                    </p>
+                    <p className="text-[10px] md:text-xs uppercase tracking-widest text-gray-400 mt-1 leading-tight">
+                      {stat.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 pt-2">
+                <img
+                  src="/fresha-badge.png"
+                  alt="Fresha Highly Recommended 2026"
+                  className="w-20 h-20 object-contain"
+                />
+                <div>
+                  <p className="text-xs font-bold text-charcoal uppercase tracking-widest">
+                    Highly Recommended
                   </p>
-                  <p className="text-[10px] md:text-xs uppercase tracking-widest text-gray-400 mt-1 leading-tight">
-                    {stat.label}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">Fresha · 2026</p>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </motion.div>
