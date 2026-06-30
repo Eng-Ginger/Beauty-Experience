@@ -31,6 +31,17 @@ const SPECIALISTS = [
   },
 ]
 
+const STARTING_FROM_CATEGORIES = [
+  'henna',
+  'makeup',
+  'hair-blowdry',
+  'hair-wavy',
+  'hair-cut',
+  'hair-style',
+  'color',
+  'hair-treatment',
+]
+
 const ADD_ONS = [
   {
     id: 'glow-boost',
@@ -313,14 +324,23 @@ export default function BookingModal() {
                               >
                                 <span className="text-sm font-medium text-charcoal">{item.name}</span>
                                 <div className="text-right shrink-0">
-                                  {customer?.membership ? (
-                                    <>
-                                      <span className="text-xs text-gray-400 line-through mr-2">{item.price} AED</span>
-                                      <span className="text-sm font-bold text-rose">{discountedPrice} AED</span>
-                                    </>
-                                  ) : (
-                                    <span className="text-sm font-bold text-rose">{item.price} AED</span>
-                                  )}
+                                  {(() => {
+                                    const showFrom = STARTING_FROM_CATEGORIES.includes(serviceKey ?? '')
+                                    return customer?.membership ? (
+                                      <>
+                                        <span className="text-xs text-gray-400 line-through mr-2">
+                                          {showFrom ? 'From ' : ''}{item.price} AED
+                                        </span>
+                                        <span className="text-sm font-bold text-rose">
+                                          {showFrom ? 'From ' : ''}{discountedPrice} AED
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="text-sm font-bold text-rose">
+                                        {showFrom ? 'From ' : ''}{item.price} AED
+                                      </span>
+                                    )
+                                  })()}
                                 </div>
                               </button>
                             )
