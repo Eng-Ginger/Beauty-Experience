@@ -25,6 +25,7 @@ export default function AuthModal() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [wrongPassword, setWrongPassword] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({})
 
   const [signin, setSignin] = useState({ email: '', password: '' })
   const [signup, setSignup] = useState({ name: '', email: '', password: '', phone: '+971', dob: '' })
@@ -35,6 +36,7 @@ export default function AuthModal() {
     closeAuth()
     setError(null)
     setWrongPassword(false)
+    setFieldErrors({})
   }
 
   const afterAuth = async () => {
@@ -79,16 +81,31 @@ export default function AuthModal() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (signup.password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
+    const errors: Record<string, string> = {}
+
+    if (!signup.name || signup.name.trim().length < 2) {
+      errors.name = 'Please enter a valid full name.'
+    }
+    if (!signup.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signup.email)) {
+      errors.email = 'Please enter a valid email address.'
+    }
+    if (!signup.password || signup.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters.'
+    } else if (signup.password.length > 72) {
+      errors.password = 'Password must be under 72 characters.'
     }
     const uaePhoneRegex = /^\+971[0-9]{9}$/
     const cleanPhone = signup.phone.replace(/\s|-/g, '')
     if (!uaePhoneRegex.test(cleanPhone)) {
-      setError('Please enter a valid UAE phone number (e.g. +971501234567).')
+      errors.phone = 'Please enter a valid UAE phone number (e.g. +971501234567).'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       return
     }
+
+    setFieldErrors({})
     setLoading(true)
     setError(null)
     try {
@@ -156,6 +173,7 @@ export default function AuthModal() {
                         setTab(t)
                         setError(null)
                         setWrongPassword(false)
+                        setFieldErrors({})
                       }}
                       className={`relative pb-3 text-sm font-bold uppercase tracking-widest ${
                         tab === t ? 'text-rose' : 'text-charcoal/50'
@@ -224,38 +242,78 @@ export default function AuthModal() {
                   </div>
                 ) : (
                   <div className="space-y-3 pb-4">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Full Name"
-                      value={signup.name}
-                      onChange={(e) => setSignup({ ...signup, name: e.target.value })}
-                      className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose"
-                    />
-                    <input
-                      type="email"
-                      required
-                      placeholder="Email"
-                      value={signup.email}
-                      onChange={(e) => setSignup({ ...signup, email: e.target.value })}
-                      className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose"
-                    />
-                    <input
-                      type="password"
-                      required
-                      placeholder="Password (min 8 characters)"
-                      value={signup.password}
-                      onChange={(e) => setSignup({ ...signup, password: e.target.value })}
-                      className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="+971 XX XXX XXXX"
-                      value={signup.phone}
-                      onChange={(e) => setSignup({ ...signup, phone: e.target.value })}
-                      required
-                      className="w-full bg-off-white border border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose"
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Full Name"
+                        value={signup.name}
+                        onChange={(e) => {
+                          setSignup({ ...signup, name: e.target.value })
+                          setFieldErrors((p) => ({ ...p, name: undefined }))
+                        }}
+                        className={`w-full bg-off-white border rounded-xl px-4 py-3 text-sm outline-none focus:border-rose ${
+                          fieldErrors.name ? 'border-rose/60' : 'border-gray-100'
+                        }`}
+                      />
+                      {fieldErrors.name && (
+                        <p className="text-xs text-rose mt-1 ml-1">{fieldErrors.name}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="email"
+                        required
+                        placeholder="Email"
+                        value={signup.email}
+                        onChange={(e) => {
+                          setSignup({ ...signup, email: e.target.value })
+                          setFieldErrors((p) => ({ ...p, email: undefined }))
+                        }}
+                        className={`w-full bg-off-white border rounded-xl px-4 py-3 text-sm outline-none focus:border-rose ${
+                          fieldErrors.email ? 'border-rose/60' : 'border-gray-100'
+                        }`}
+                      />
+                      {fieldErrors.email && (
+                        <p className="text-xs text-rose mt-1 ml-1">{fieldErrors.email}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Password (min 8 characters)"
+                        value={signup.password}
+                        onChange={(e) => {
+                          setSignup({ ...signup, password: e.target.value })
+                          setFieldErrors((p) => ({ ...p, password: undefined }))
+                        }}
+                        className={`w-full bg-off-white border rounded-xl px-4 py-3 text-sm outline-none focus:border-rose ${
+                          fieldErrors.password ? 'border-rose/60' : 'border-gray-100'
+                        }`}
+                      />
+                      {fieldErrors.password && (
+                        <p className="text-xs text-rose mt-1 ml-1">{fieldErrors.password}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="tel"
+                        placeholder="+971 XX XXX XXXX"
+                        value={signup.phone}
+                        onChange={(e) => {
+                          setSignup({ ...signup, phone: e.target.value })
+                          setFieldErrors((p) => ({ ...p, phone: undefined }))
+                        }}
+                        required
+                        className={`w-full bg-off-white border rounded-xl px-4 py-3 text-sm outline-none focus:border-rose ${
+                          fieldErrors.phone ? 'border-rose/60' : 'border-gray-100'
+                        }`}
+                      />
+                      {fieldErrors.phone && (
+                        <p className="text-xs text-rose mt-1 ml-1">{fieldErrors.phone}</p>
+                      )}
+                    </div>
                     <div>
                       <label className="text-xs text-gray-400 uppercase tracking-widest ml-1">
                         Date of Birth
