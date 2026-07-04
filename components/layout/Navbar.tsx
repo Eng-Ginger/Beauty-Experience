@@ -40,7 +40,7 @@ export default function Navbar() {
 
   useScrollLock(menuOpen)
 
-  const isAdminRoute = pathname?.startsWith('/admin') ?? false
+  const isAdminRoute = (pathname?.startsWith('/admin') || pathname?.startsWith('/staff')) ?? false
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY >= 60)
