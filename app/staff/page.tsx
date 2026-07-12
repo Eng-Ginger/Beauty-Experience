@@ -127,10 +127,10 @@ export default function StaffPage() {
       const ids = Array.from(selectedIds)
       await Promise.all(
         ids.map((id) =>
-          fetch('/api/admin/delete', {
+          fetch('/api/staff/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type, id, adminPassword: password }),
+            body: JSON.stringify({ type, id, staffPassword: password }),
           })
         )
       )
@@ -191,13 +191,13 @@ export default function StaffPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const r = await fetch('/api/admin/delete', {
+      const r = await fetch('/api/staff/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: deleteTarget.type,
           id: deleteTarget.id,
-          adminPassword: password,
+          staffPassword: password,
         }),
       })
       if (r.ok) {
