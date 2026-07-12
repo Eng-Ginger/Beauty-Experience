@@ -639,6 +639,8 @@ function BookingsTable({
           </th>
           <Th>Booking ID</Th>
           <Th>Customer</Th>
+          <Th>Phone</Th>
+          <Th>Email</Th>
           <Th>Service</Th>
           <Th>Date</Th>
           <Th>Time</Th>
@@ -665,6 +667,8 @@ function BookingsTable({
               </td>
               <Td mono>{r.booking_id}</Td>
               <Td>{r.customer_name}</Td>
+              <Td>{r.customer_phone}</Td>
+              <Td>{r.customer_email}</Td>
               <Td>{r.service}</Td>
               <Td>{r.date}</Td>
               <Td>{r.time}</Td>
