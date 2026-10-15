@@ -346,6 +346,7 @@ export default function BookingModal() {
                             )
                           })}
                         </div>
+                        <p className="text-xs text-gray-400 mt-3">* Final prices depend on hair length, thickness, and selected service. VAT applies.</p>
                       </div>
                     ) : (
                       <div className="pb-4">

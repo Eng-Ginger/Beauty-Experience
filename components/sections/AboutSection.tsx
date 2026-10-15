@@ -69,7 +69,7 @@ export default function AboutSection() {
                     Sharjah · Almajaz 2
                   </p>
                   <p className="text-sm text-gray-500 mt-1">Alkaloti Building, Shop 1 + 2</p>
-                  <p className="text-sm text-gray-500">Open 10:00 – 22:00 daily</p>
+                  <p className="text-sm text-gray-500">Mon 12:00–21:00 · Fri 13:00–22:00 · Tue–Thu & Sat–Sun 10:00–22:00</p>
                 </div>
               </div>
             </div>
